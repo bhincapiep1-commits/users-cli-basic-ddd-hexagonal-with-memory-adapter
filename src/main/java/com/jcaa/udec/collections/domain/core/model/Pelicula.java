@@ -1,7 +1,10 @@
 package com.jcaa.udec.collections.domain.core.model;
 
 import lombok.Builder;
+import lombok.ToString;
 
+@Builder
+@ToString
 public class Pelicula {
 
     private final String id;
@@ -18,7 +21,6 @@ public class Pelicula {
     private final String director;
     private final String elenco;
 
-    @Builder
     public Pelicula(
             String id,
             String titulo,
