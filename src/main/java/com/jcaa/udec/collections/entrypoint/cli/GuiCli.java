@@ -1,9 +1,11 @@
-
 package com.jcaa.udec.collections.entrypoint.cli;
 
+import com.jcaa.udec.collections.application.service.dto.command.CrearPeliculaComando;
+import com.jcaa.udec.collections.application.service.dto.query.ObtenerPeliculaConsulta;
 import com.jcaa.udec.collections.domain.core.exception.UsuarioInvalidoException;
 import com.jcaa.udec.collections.domain.core.exception.UsuarioNoExisteException;
 import com.jcaa.udec.collections.domain.core.exception.UsuarioYaExisteException;
+import com.jcaa.udec.collections.domain.core.model.Pelicula;
 import com.jcaa.udec.collections.domain.core.valueobject.Email;
 import com.jcaa.udec.collections.domain.core.valueobject.NombreUsuario;
 import com.jcaa.udec.collections.domain.core.valueobject.Password;
@@ -13,49 +15,34 @@ import com.jcaa.udec.collections.entrypoint.controller.UsuarioControlador;
 import com.jcaa.udec.collections.entrypoint.controller.dto.request.RegistrarUsuarioPeticion;
 import com.jcaa.udec.collections.entrypoint.controller.dto.response.ObtenerUsuarioResponse;
 
+import java.util.List;
 import java.util.Scanner;
 
 public class GuiCli {
-    private static final int OPCION_AGREGAR = 1;
-    private static final int OPCION_BUSCAR = 2;
-    private static final int OPCION_MOSTRAR_TODOS = 3;
-    private static final int OPCION_ELIMINAR_PELICULA = 4;
-    private static final int OPCION_SALIR = 5;
 
-    private static final String TEXTO_TITULO = "** EJEMPLO DE USO DE LISTAS Y HEXAGONAL **";
-    private static final String TITULO_REGISTRO = "** INGRESE LOS DATOS DEL NUEVO USUARIO **";
+    private static final int OPCION_AGREGAR_USUARIO = 1;
+    private static final int OPCION_BUSCAR_USUARIO = 2;
+    private static final int OPCION_MOSTRAR_USUARIOS = 3;
+    private static final int OPCION_AGREGAR_PELICULA = 4;
+    private static final int OPCION_BUSCAR_PELICULA = 5;
+    private static final int OPCION_MOSTRAR_PELICULAS = 6;
+    private static final int OPCION_ACTUALIZAR_PELICULA = 7;
+    private static final int OPCION_ELIMINAR_PELICULA = 8;
+    private static final int OPCION_SALIR = 9;
+
+    private static final String TEXTO_TITULO =
+            "** EJEMPLO DE USO DE LISTAS Y HEXAGONAL **";
     private static final String SEPARADOR = "- - - - - - - - - ";
     private static final String OPCIONES = "Opciones:";
-    private static final String TEXTO_OPCION_AGREGAR = "1 - Agregar";
-    private static final String TEXTO_OPCION_BUSCAR = "2 - Buscar por Id";
-    private static final String TEXTO_OPCION_MOSTRAR_TODOS = "3 - Ver todos";
-    private static final String TEXTO_OPCION_ELIMINAR_PELICULA = "4 - Eliminar pelicula";
-    private static final String TEXTO_OPCION_SALIR = "5 - Salir";
 
-    private static final String TEXTO_SOLICITUD_OPCION = "Ingrese el numero de la opcion: ";
     private static final String SOLICITUD_ID = "ID: ";
     private static final String SOLICITUD_PASSWORD = "PASSWORD: ";
     private static final String SOLICITUD_NOMBRE = "NOMBRE: ";
     private static final String SOLICITUD_EMAIL = "EMAIL: ";
 
-    private static final String MENSAJE_OPCION_INVALIDA = "Opcion [%s] invalida";
-    private static final String MENSAJE_ID_INVALIDO =
-            "ID INVALIDO: debe ser un numero entero";
-    private static final String MENSAJE_PASSWORD_INVALIDO =
-            "PASSWORD INVALIDO: minimo 10 caracteres, con mayuscula, minuscula, numero y simbolo";
-    private static final String MENSAJE_NOMBRE_INVALIDO =
-            "NOMBRE INVALIDO: minimo 3 caracteres";
-    private static final String MENSAJE_EMAIL_INVALIDO =
-            "EMAIL INVALIDO: ingrese un correo valido";
+    private static final String MENSAJE_OPCION_INVALIDA =
+            "Opcion [%s] invalida";
     private static final String MENSAJE_ERROR = "ERROR: ";
-    private static final String MENSAJE_REGISTRO_EXITOSO =
-            "Usuario registrado correctamente.";
-    private static final String MENSAJE_LISTA_VACIA =
-            "No hay usuarios registrados.";
-    private static final String MENSAJE_DESPEDIDA =
-            "Esperamos tu regreso. Bye, Bye";
-    private static final String MENSAJE_ELIMINACION_EXITOSA =
-            "Pelicula eliminada correctamente.";
 
     private static final String MARCA_ORDEN_BYTES = "\uFEFF";
     private static final String TEXTO_VACIO = "";
@@ -87,11 +74,12 @@ public class GuiCli {
             try {
                 int opcion = Integer.parseInt(valorIngresado);
 
-                if (opcion >= OPCION_AGREGAR && opcion <= OPCION_SALIR) {
+                if (opcion >= OPCION_AGREGAR_USUARIO
+                        && opcion <= OPCION_SALIR) {
                     return opcion;
                 }
             } catch (NumberFormatException exception) {
-                // El flujo informa el valor invalido y vuelve a mostrar el menu.
+                // Entrada invalida.
             }
 
             System.out.printf(MENSAJE_OPCION_INVALIDA + "%n", valorIngresado);
@@ -106,9 +94,13 @@ public class GuiCli {
 
             try {
                 switch (opcion) {
-                    case OPCION_AGREGAR -> registrarUsuario();
-                    case OPCION_BUSCAR -> mostrarUsuarioPorId();
-                    case OPCION_MOSTRAR_TODOS -> mostrarTodosLosUsuarios();
+                    case OPCION_AGREGAR_USUARIO -> registrarUsuario();
+                    case OPCION_BUSCAR_USUARIO -> mostrarUsuarioPorId();
+                    case OPCION_MOSTRAR_USUARIOS -> mostrarTodosLosUsuarios();
+                    case OPCION_AGREGAR_PELICULA -> agregarPelicula();
+                    case OPCION_BUSCAR_PELICULA -> buscarPelicula();
+                    case OPCION_MOSTRAR_PELICULAS -> mostrarTodasLasPeliculas();
+                    case OPCION_ACTUALIZAR_PELICULA -> actualizarPelicula();
                     case OPCION_ELIMINAR_PELICULA -> eliminarPelicula();
                     case OPCION_SALIR -> continuar = false;
                 }
@@ -119,7 +111,7 @@ public class GuiCli {
             }
         }
 
-        System.out.println(MENSAJE_DESPEDIDA);
+        System.out.println("Esperamos tu regreso. Bye, Bye");
     }
 
     private void mostrarMenu() {
@@ -128,17 +120,21 @@ public class GuiCli {
         System.out.println(SEPARADOR);
         System.out.println(OPCIONES);
         System.out.println(SEPARADOR);
-        System.out.println(TEXTO_OPCION_AGREGAR);
-        System.out.println(TEXTO_OPCION_BUSCAR);
-        System.out.println(TEXTO_OPCION_MOSTRAR_TODOS);
-        System.out.println(TEXTO_OPCION_ELIMINAR_PELICULA);
-        System.out.println(TEXTO_OPCION_SALIR);
-        System.out.print(TEXTO_SOLICITUD_OPCION);
+        System.out.println("1 - Agregar usuario");
+        System.out.println("2 - Buscar usuario por Id");
+        System.out.println("3 - Ver todos los usuarios");
+        System.out.println("4 - Agregar pelicula");
+        System.out.println("5 - Buscar pelicula por Id");
+        System.out.println("6 - Ver todas las peliculas");
+        System.out.println("7 - Actualizar pelicula");
+        System.out.println("8 - Eliminar pelicula");
+        System.out.println("9 - Salir");
+        System.out.print("Ingrese el numero de la opcion: ");
     }
 
     private void registrarUsuario() {
         usuarioControlador.registrar(capturarDatosUsuario());
-        System.out.println(MENSAJE_REGISTRO_EXITOSO);
+        System.out.println("Usuario registrado correctamente.");
     }
 
     private void mostrarUsuarioPorId() {
@@ -149,22 +145,93 @@ public class GuiCli {
         ObtenerUsuarioResponse response = usuarioControlador.obtenerTodos();
 
         if (response.estaVacia()) {
-            System.out.println(MENSAJE_LISTA_VACIA);
+            System.out.println("No hay usuarios registrados.");
             return;
         }
 
         System.out.println(response);
     }
 
+    private void agregarPelicula() {
+        peliculaControlador.agregar(capturarDatosPelicula());
+        System.out.println("Pelicula agregada correctamente.");
+    }
+
+    private void buscarPelicula() {
+        String id = capturarId();
+        Pelicula pelicula = peliculaControlador.buscarPorId(
+                new ObtenerPeliculaConsulta(id));
+        System.out.println(pelicula);
+    }
+
+    private void mostrarTodasLasPeliculas() {
+        List<Pelicula> peliculas = peliculaControlador.mostrarTodos();
+
+        if (peliculas.isEmpty()) {
+            System.out.println("No hay peliculas registradas.");
+            return;
+        }
+
+        peliculas.forEach(System.out::println);
+    }
+
+    private void actualizarPelicula() {
+        peliculaControlador.actualizar(capturarDatosPelicula());
+        System.out.println("Pelicula actualizada correctamente.");
+    }
+
     private void eliminarPelicula() {
         String id = capturarId();
         peliculaControlador.eliminarPorId(id);
-        System.out.println(MENSAJE_ELIMINACION_EXITOSA);
+        System.out.println("Pelicula eliminada correctamente.");
+    }
+
+    private CrearPeliculaComando capturarDatosPelicula() {
+        System.out.println();
+        System.out.println("** INGRESE LOS DATOS DE LA PELICULA **");
+
+        return new CrearPeliculaComando(
+                capturarTexto("ID"),
+                capturarTexto("TITULO"),
+                capturarTexto("GENERO"),
+                capturarTexto("IDIOMA ORIGINAL"),
+                capturarBooleano(),
+                capturarTexto("PAISES DE ORIGEN"),
+                capturarEntero("AÑO DE PRODUCCION"),
+                capturarEntero("DURACION"),
+                capturarTexto("CLASIFICACION DE EDAD"),
+                capturarTexto("FECHA DE ESTRENO"),
+                capturarTexto("RESUMEN"),
+                capturarTexto("DIRECTOR"),
+                capturarTexto("ELENCO"));
+    }
+
+    private String capturarTexto(String campo) {
+        System.out.print(campo + ": ");
+        return limpiarEntrada(entrada.nextLine());
+    }
+
+    private boolean capturarBooleano() {
+        System.out.print("SUBTITULOS EN ESPANOL (true/false): ");
+        return Boolean.parseBoolean(limpiarEntrada(entrada.nextLine()));
+    }
+
+    private int capturarEntero(String campo) {
+        while (true) {
+            System.out.print(campo + ": ");
+
+            try {
+                return Integer.parseInt(
+                        limpiarEntrada(entrada.nextLine()));
+            } catch (NumberFormatException exception) {
+                System.out.println("Debe ingresar un numero entero.");
+            }
+        }
     }
 
     private RegistrarUsuarioPeticion capturarDatosUsuario() {
         System.out.println();
-        System.out.println(TITULO_REGISTRO);
+        System.out.println("** INGRESE LOS DATOS DEL NUEVO USUARIO **");
 
         return new RegistrarUsuarioPeticion(
                 capturarId(),
@@ -182,7 +249,7 @@ public class GuiCli {
                 return id;
             }
 
-            System.out.println(MENSAJE_ID_INVALIDO);
+            System.out.println("ID INVALIDO: debe ser un numero entero");
         } while (true);
     }
 
@@ -195,7 +262,9 @@ public class GuiCli {
                 return password;
             }
 
-            System.out.println(MENSAJE_PASSWORD_INVALIDO);
+            System.out.println(
+                    "PASSWORD INVALIDO: minimo 10 caracteres, "
+                            + "con mayuscula, minuscula, numero y simbolo");
         } while (true);
     }
 
@@ -208,7 +277,7 @@ public class GuiCli {
                 return nombre;
             }
 
-            System.out.println(MENSAJE_NOMBRE_INVALIDO);
+            System.out.println("NOMBRE INVALIDO: minimo 3 caracteres");
         } while (true);
     }
 
@@ -221,7 +290,7 @@ public class GuiCli {
                 return email;
             }
 
-            System.out.println(MENSAJE_EMAIL_INVALIDO);
+            System.out.println("EMAIL INVALIDO: ingrese un correo valido");
         } while (true);
     }
 
@@ -238,4 +307,3 @@ public class GuiCli {
         }
     }
 }
-
