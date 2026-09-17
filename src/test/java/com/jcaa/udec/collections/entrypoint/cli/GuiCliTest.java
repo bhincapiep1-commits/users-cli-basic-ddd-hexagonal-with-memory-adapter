@@ -2,21 +2,27 @@ package com.jcaa.udec.collections.entrypoint.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.jcaa.udec.collections.application.service.dto.command.CrearPeliculaComando;
+import com.jcaa.udec.collections.application.service.dto.query.ObtenerPeliculaConsulta;
 import com.jcaa.udec.collections.domain.core.exception.UsuarioNoExisteException;
+import com.jcaa.udec.collections.domain.core.model.Pelicula;
+import com.jcaa.udec.collections.entrypoint.controller.PeliculaControlador;
 import com.jcaa.udec.collections.entrypoint.controller.UsuarioControlador;
 import com.jcaa.udec.collections.entrypoint.controller.dto.request.RegistrarUsuarioPeticion;
 import com.jcaa.udec.collections.entrypoint.controller.dto.response.ObtenerUsuarioResponse;
 import com.jcaa.udec.collections.entrypoint.controller.dto.response.UsuarioResponse;
+
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+
 import org.junit.jupiter.api.Test;
-import com.jcaa.udec.collections.entrypoint.controller.PeliculaControlador;
 
 class GuiCliTest {
+
     private static final String ID = "123";
     private static final String PASSWORD = "ClaveSegura1!";
     private static final String NOMBRE = "Ana Perez";
@@ -24,20 +30,21 @@ class GuiCliTest {
 
     @Test
     void deberiaSolicitarOpcionHastaRecibirValorValido() {
-        // Arrange
         UsuarioControladorStub controlador = new UsuarioControladorStub();
-        GuiCli guiCli = crearGuiCli(controlador, "texto", "6", "\uFEFF2");
-        // Act
-        String salida = capturarSalida(() -> assertThat(guiCli.obtenerOpcionMenu()).isEqualTo(2));
+        GuiCli guiCli = crearGuiCli(controlador, "texto", "10", "\uFEFF2");
 
-        // Assert
-        assertThat(salida).contains("Opcion [texto] invalida", "Opcion [6] invalida");
+        String salida = capturarSalida(
+                () -> assertThat(guiCli.obtenerOpcionMenu()).isEqualTo(2));
+
+        assertThat(salida).contains(
+                "Opcion [texto] invalida",
+                "Opcion [10] invalida");
     }
 
     @Test
     void deberiaRegistrarUsuarioLuegoDeCorregirDatosInvalidos() {
-        // Arrange
         UsuarioControladorStub controlador = new UsuarioControladorStub();
+
         GuiCli guiCli = crearGuiCli(
                 controlador,
                 "1",
@@ -49,12 +56,10 @@ class GuiCliTest {
                 NOMBRE,
                 "correo-invalido",
                 EMAIL,
-                "5");
+                "9");
 
-        // Act
         String salida = capturarSalida(guiCli::ejecutarAccion);
 
-        // Assert
         assertThat(controlador.getPeticiones())
                 .singleElement()
                 .extracting(
@@ -63,6 +68,7 @@ class GuiCliTest {
                         RegistrarUsuarioPeticion::nombre,
                         RegistrarUsuarioPeticion::email)
                 .containsExactly(ID, PASSWORD, NOMBRE, EMAIL);
+
         assertThat(salida).contains(
                 "ID INVALIDO",
                 "PASSWORD INVALIDO",
@@ -74,65 +80,105 @@ class GuiCliTest {
 
     @Test
     void deberiaMostrarUsuarioBuscado() {
-        // Arrange
         UsuarioControladorStub controlador = new UsuarioControladorStub();
-        GuiCli guiCli = crearGuiCli(controlador, "2", ID, "5");
-        // Act
+        GuiCli guiCli = crearGuiCli(controlador, "2", ID, "9");
+
         String salida = capturarSalida(guiCli::ejecutarAccion);
 
-        // Assert
-        assertThat(salida).contains("ID: " + ID, "NOMBRE: " + NOMBRE, "EMAIL: " + EMAIL);
+        assertThat(salida).contains(
+                "ID: " + ID,
+                "NOMBRE: " + NOMBRE,
+                "EMAIL: " + EMAIL);
     }
 
     @Test
     void deberiaInformarCuandoNoHayUsuariosRegistrados() {
-        // Arrange
         UsuarioControladorStub controlador = new UsuarioControladorStub();
-        GuiCli guiCli = crearGuiCli(controlador, "3", "5");
-        // Act
+        GuiCli guiCli = crearGuiCli(controlador, "3", "9");
+
         String salida = capturarSalida(guiCli::ejecutarAccion);
 
-        // Assert
         assertThat(salida).contains("No hay usuarios registrados.");
     }
 
     @Test
     void deberiaMostrarTodosLosUsuariosRegistrados() {
-        // Arrange
         UsuarioControladorStub controlador = new UsuarioControladorStub();
-        controlador.registrar(new RegistrarUsuarioPeticion(ID, PASSWORD, NOMBRE, EMAIL));
-        GuiCli guiCli = crearGuiCli(controlador, "3", "5");
+        controlador.registrar(
+                new RegistrarUsuarioPeticion(ID, PASSWORD, NOMBRE, EMAIL));
 
-        // Act
+        GuiCli guiCli = crearGuiCli(controlador, "3", "9");
+
         String salida = capturarSalida(guiCli::ejecutarAccion);
 
-        // Assert
-        assertThat(salida).contains("ID: " + ID, "NOMBRE: " + NOMBRE, "EMAIL: " + EMAIL);
+        assertThat(salida).contains(
+                "ID: " + ID,
+                "NOMBRE: " + NOMBRE,
+                "EMAIL: " + EMAIL);
     }
 
     @Test
     void deberiaInformarErrorDelControlador() {
-        // Arrange
         UsuarioControladorStub controlador = new UsuarioControladorStub();
         controlador.reportarUsuarioInexistente();
-       GuiCli guiCli = crearGuiCli(controlador, "2", ID, "5");
 
-        // Act
+        GuiCli guiCli = crearGuiCli(controlador, "2", ID, "9");
+
         String salida = capturarSalida(guiCli::ejecutarAccion);
 
-        // Assert
         assertThat(salida).contains("ERROR: El usuario no existe.");
     }
-    private static GuiCli crearGuiCli(UsuarioControlador controlador, String... entradas) {
-    String contenido = String.join(System.lineSeparator(), entradas);
-    PeliculaControlador peliculaControlador = id -> {};
-    return new GuiCli(controlador, peliculaControlador, new Scanner(contenido));
+
+    private static GuiCli crearGuiCli(
+            UsuarioControlador controlador,
+            String... entradas) {
+
+        String contenido =
+                String.join(System.lineSeparator(), entradas);
+
+        PeliculaControlador peliculaControlador =
+                new PeliculaControlador() {
+
+                    @Override
+                    public void agregar(CrearPeliculaComando comando) {
+                    }
+
+                    @Override
+                    public Pelicula buscarPorId(
+                            ObtenerPeliculaConsulta consulta) {
+                        return null;
+                    }
+
+                    @Override
+                    public List<Pelicula> mostrarTodos() {
+                        return List.of();
+                    }
+
+                    @Override
+                    public void actualizar(
+                            CrearPeliculaComando comando) {
+                    }
+
+                    @Override
+                    public void eliminarPorId(String id) {
+                    }
+                };
+
+        return new GuiCli(
+                controlador,
+                peliculaControlador,
+                new Scanner(contenido));
     }
 
     private static String capturarSalida(Runnable accion) {
         PrintStream salidaOriginal = System.out;
         ByteArrayOutputStream salida = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(salida, true, StandardCharsets.UTF_8));
+
+        System.setOut(new PrintStream(
+                salida,
+                true,
+                StandardCharsets.UTF_8));
+
         try {
             accion.run();
             return salida.toString(StandardCharsets.UTF_8);
@@ -145,12 +191,17 @@ class GuiCliTest {
         return new UsuarioResponse(ID, NOMBRE, EMAIL);
     }
 
-    private static final class UsuarioControladorStub implements UsuarioControlador {
-        private final List<RegistrarUsuarioPeticion> peticiones = new ArrayList<>();
+    private static final class UsuarioControladorStub
+            implements UsuarioControlador {
+
+        private final List<RegistrarUsuarioPeticion> peticiones =
+                new ArrayList<>();
+
         private boolean usuarioInexistente;
 
         @Override
-        public void registrar(RegistrarUsuarioPeticion peticion) {
+        public void registrar(
+                RegistrarUsuarioPeticion peticion) {
             peticiones.add(peticion);
         }
 
@@ -159,14 +210,17 @@ class GuiCliTest {
             if (usuarioInexistente) {
                 throw new UsuarioNoExisteException();
             }
-            return new ObtenerUsuarioResponse(List.of(crearUsuarioResponse()));
+
+            return new ObtenerUsuarioResponse(
+                    List.of(crearUsuarioResponse()));
         }
 
         @Override
         public ObtenerUsuarioResponse obtenerTodos() {
-            return new ObtenerUsuarioResponse(peticiones.stream()
-                    .map(peticion -> crearUsuarioResponse())
-                    .toList());
+            return new ObtenerUsuarioResponse(
+                    peticiones.stream()
+                            .map(peticion -> crearUsuarioResponse())
+                            .toList());
         }
 
         private List<RegistrarUsuarioPeticion> getPeticiones() {
